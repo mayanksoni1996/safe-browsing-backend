@@ -2,6 +2,7 @@ package tech.mayanksoni.threatdetectionbackend.dm.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -99,7 +100,7 @@ public class TrustedDomainMongoDataManagerImpl implements TrustedDomainDataManag
 
     @Override
     public Mono<TrustedDomain> getTrustedDomainByDomainName(String domainName) {
-        Query query = Query.query(Criteria.where("tld").is(DomainUtils.extractTLDFromDomain(domainName)).and("domainName").is(domainName));
+        Query query = Query.query(Criteria.where("tld").is(DomainUtils.extractTLDFromDomain(domainName)).and("domainName").is(domainName)).with(Sort.by(Sort.Direction.ASC, "domainRank"));
         return mongoTemplate.findOne(query, TrustedDomainDocument.class)
                 .map(TRUSTED_DOMAIN_MAPPER::toModel)
                 .doOnSuccess(domain -> log.info("Retrieved trusted domain: {}", domainName))
