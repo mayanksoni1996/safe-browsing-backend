@@ -150,6 +150,15 @@ public class TrustedDomainMongoDataManagerImpl implements TrustedDomainDataManag
     }
 
     @Override
+    public Flux<TrustedDomain> getTrustedDomainByTldAndDomain(String tld, String domain) {
+        Query query = Query.query(Criteria.where("tld").is(tld).and("domainName").is(domain));
+        return mongoTemplate.find(query, TrustedDomainDocument.class)
+                .map(TRUSTED_DOMAIN_MAPPER::toModel)
+                .doOnComplete(() -> log.info("Retrieved trusted domain for TLD: {}, domain: {}", tld, domain))
+                .doOnError(e -> log.error("Error retrieving trusted domain: {}", e.getMessage()))
+                ;
+    }
+    @Override
     public Flux<TrustedDomain> getTrustedDomainsByTLD(String tld) {
         Query query = Query.query(Criteria.where("tld").is(tld));
         return mongoTemplate.find(query, TrustedDomainDocument.class)
