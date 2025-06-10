@@ -94,11 +94,11 @@ public class TyposquattingDetectionService {
         String normalizedDomain = DomainUtils.normalizeDomain(domainName);
 
         // Get trusted domains with the same TLD
-        Flux<TrustedDomain> trustedDomains = trustedDomainDataManager.getTrustedDomainsByTLD(
-                DomainUtils.extractTLDFromDomain(normalizedDomain));
+        Flux<TrustedDomain> extactDomainMatchFlux = trustedDomainDataManager.getTrustedDomainByTldAndDomain(
+                DomainUtils.extractTLDFromDomain(normalizedDomain),normalizedDomain);
 
         // Check for the exact match first
-        return trustedDomains
+        return extactDomainMatchFlux
                 .filter(storedDomain -> storedDomain.getDomainName().equalsIgnoreCase(normalizedDomain))
                 .next()
                 .flatMap(exactMatch -> {
@@ -116,7 +116,7 @@ public class TyposquattingDetectionService {
                 })
                 .switchIfEmpty(
                     // If no exact match, check for typosquatting using edit distance and phonetic matching
-                    checkForTyposquattingAndPhoneticMatches(normalizedDomain, trustedDomains)
+                    checkForTyposquattingAndPhoneticMatches(normalizedDomain, trustedDomainDataManager.getTrustedDomainsByTLD(DomainUtils.extractTLDFromDomain(normalizedDomain)))
                 );
     }
 
