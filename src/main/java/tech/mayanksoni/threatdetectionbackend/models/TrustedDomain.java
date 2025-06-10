@@ -20,4 +20,6 @@ public class TrustedDomain {
 
     @Schema(description = "The top-level domain (TLD) of the trusted domain", example = "com")
     private String tld;
+    @Schema(description = "The rank of the trusted domain", example = "1000")
+    private long domainRank;
 }

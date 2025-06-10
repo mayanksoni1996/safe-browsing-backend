@@ -10,6 +10,7 @@ import reactor.core.scheduler.Schedulers;
 import tech.mayanksoni.threatdetectionbackend.configuration.ThreatDetectionConfig;
 import tech.mayanksoni.threatdetectionbackend.dm.TrustedDomainDataManager;
 import tech.mayanksoni.threatdetectionbackend.models.DomainTyposquattingValidationResults;
+import tech.mayanksoni.threatdetectionbackend.models.TrancoDomainEntry;
 import tech.mayanksoni.threatdetectionbackend.models.TrustedDomain;
 import tech.mayanksoni.threatdetectionbackend.utils.DomainUtils;
 import tech.mayanksoni.threatdetectionbackend.utils.EditDistanceUtil;
@@ -64,9 +65,8 @@ public class TyposquattingDetectionService {
 
                                         try {
                                             // Normalize domains before adding to database
-                                            Flux<String> normalizedDomainsFlux = ThreatIntelFileSystemUtils.readCsvFileFromFileSystemAsFlux(Paths.get(trancoFilePath))
-                                                    .map(record -> record[1].trim()) // Assuming the domain is in the first column
-                                                    .map(DomainUtils::normalizeDomain);
+                                            Flux<TrancoDomainEntry> normalizedDomainsFlux = ThreatIntelFileSystemUtils.readCsvFileFromFileSystemAsFlux(Paths.get(trancoFilePath))
+                                                    .map(record -> new TrancoDomainEntry(DomainUtils.normalizeDomain(record[1]),Long.parseLong(record[0]))); // Assuming the domain is in the first column
                                             return this.trustedDomainDataManager.addTrustedDomain(normalizedDomainsFlux)
                                                     .doOnSuccess(v2 -> log.info("All trusted domains have been successfully loaded"))
                                                     .doOnError(e -> log.error("Error loading trusted domains: {}", e.getMessage()));
