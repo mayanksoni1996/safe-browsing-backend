@@ -7,6 +7,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import tech.mayanksoni.threatdetectionbackend.configuration.ThreatDetectionConfig;
 import tech.mayanksoni.threatdetectionbackend.models.DomainTyposquattingValidationResults;
+import tech.mayanksoni.threatdetectionbackend.models.DomainValidationResponse;
+import tech.mayanksoni.threatdetectionbackend.services.StateManagementService;
 import tech.mayanksoni.threatdetectionbackend.services.TyposquattingDetectionService;
 
 import java.util.List;
@@ -20,19 +22,37 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DomainCheckProcessor {
     private final TyposquattingDetectionService typosquattingDetectionService;
+    private final StateManagementService stateManagementService;
     private final ThreatDetectionConfig threatDetectionConfig;
 
     /**
      * Checks a single domain for typosquatting.
      * 
      * @param domainName The domain name to check
+     * @param stateId the state UUID associated with the domain check
      * @return A Mono containing the validation results
      */
-    public Mono<DomainTyposquattingValidationResults> checkDomain(String domainName) {
+    public Mono<DomainValidationResponse> checkDomain(String domainName, String stateId) {
         log.info("Checking domain for typosquatting: {}", domainName);
-        return typosquattingDetectionService.checkDomainForTypoSquatting(domainName);
-    }
-
+        return stateManagementService.getStateById(stateId).map(state -> {
+            if(state.accessAllowed()){
+                log.info("Access allowed for domain: {} by state id : {}", domainName, stateId);
+            }else{
+                log.info("Access not allowed for domain: {} by state id : {}", domainName, stateId);
+            }
+            return DomainValidationResponse.builder()
+                    .stateModel(state)
+                    .typosquattingValidationResults(null)
+                    .build();
+        }).switchIfEmpty(typosquattingDetectionService.checkDomainForTypoSquatting(domainName).flatMap(result -> {
+            log.info("Domain {} checked for typosquatting, results: {}", domainName, result);
+            return stateManagementService.createStateModel(stateId, domainName, null, false)
+                    .map(stateModel -> DomainValidationResponse.builder()
+                            .stateModel(stateModel)
+                            .typosquattingValidationResults(result)
+                            .build());
+        })).doOnError(e -> log.error("Error checking domain {} for typosquatting: {}", domainName, e.getMessage()));
+        }
     /**
      * Checks multiple domains for typosquatting in parallel.
      * The processing will be done in parallel if parallel processing is enabled in the configuration.
@@ -55,7 +75,7 @@ public class DomainCheckProcessor {
             // Split the list into batches
             return Flux.fromIterable(domainNames)
                     .buffer(threatDetectionConfig.getBatchSize())
-                    .flatMap(batch -> typosquattingDetectionService.checkDomainsForTypoSquattingInParallel(batch));
+                    .flatMap(typosquattingDetectionService::checkDomainsForTypoSquattingInParallel);
         }
 
         // Process the entire list at once if it's small enough

@@ -39,6 +39,10 @@ public class StateMongoDataManagerImpl implements StateDataManager {
         log.info("Performing cleanup task for state");
         this.deleteAllInactiveStates();
     }
+
+    private static Instant processTime(String timeString){
+        return TimeProcessor.processTime(timeString);
+    }
     @Override
     public Mono<StateModel> createState(String state, String domainName, String ipAddress, boolean accessOverrideControlAvailable) {
         StateDocument stateDocument = StateDocument.builder()
@@ -46,6 +50,7 @@ public class StateMongoDataManagerImpl implements StateDataManager {
                 .stateExpiresAt(TimeProcessor.processTime(threatDetectionConfig.getDefaultStateLifetime()))
                 .creationTimestamp(Instant.now())
                 .accessAllowed(false)
+                .stateExpiresAt(processTime(threatDetectionConfig.getDefaultStateLifetime()))
                 .accessOverrideControlAvailable(accessOverrideControlAvailable)
                 .domainName(domainName)
                 .ipAddress(ipAddress)
@@ -69,8 +74,8 @@ public class StateMongoDataManagerImpl implements StateDataManager {
 
     @Override
     public Mono<StateModel> updateStateById(String stateId, boolean accessAllowed) {
-        Query query = ACTIVE_STATES_QUERY.addCriteria(Criteria.where("id").is(stateId));
-        Update update = new Update().set("accessAllowed", accessAllowed).set("stateExpiresAt", TimeProcessor.processTime(threatDetectionConfig.getDefaultStateLifetime()));
+        Query query = ACTIVE_STATES_QUERY.addCriteria(Criteria.where("id").is(stateId).and("accessOverrideControlAvailable").is(false));
+        Update update = new Update().set("accessAllowed", accessAllowed).set("stateExpiresAt",processTime(threatDetectionConfig.getDefaultStateLifetime()));
         return this.mongoTemplate.updateFirst(query, update, StateDocument.class).flatMap(s -> {
             if (s.getModifiedCount() == 0) {
                 return Mono.error(new IllegalArgumentException("State not found with id: " + stateId));

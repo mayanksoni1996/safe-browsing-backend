@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import tech.mayanksoni.threatdetectionbackend.models.DomainTyposquattingValidationResults;
+import tech.mayanksoni.threatdetectionbackend.models.DomainValidationResponse;
 import tech.mayanksoni.threatdetectionbackend.processor.DomainCheckProcessor;
 
 import java.util.List;
@@ -40,7 +41,7 @@ public class CheckDomainController {
                     description = "Domain validation completed successfully",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = DomainTyposquattingValidationResults.class)
+                            schema = @Schema(implementation = DomainValidationResponse.class)
                     )
             ),
             @ApiResponse(
@@ -55,10 +56,13 @@ public class CheckDomainController {
             )
     })
     @GetMapping
-    public Mono<DomainTyposquattingValidationResults> validateDomainForTyposquatting(
+    public Mono<DomainValidationResponse> validateDomainForTyposquatting(
             @Parameter(description = "Domain name to validate", required = true)
-            @RequestParam String domainName) {
-        return domainCheckProcessor.checkDomain(domainName);
+            @RequestParam String domainName,
+            @Parameter(description = "State UUID for the domain check", required = true)
+            @RequestParam String stateId
+    ) {
+        return domainCheckProcessor.checkDomain(domainName,stateId);
     }
 
     /**

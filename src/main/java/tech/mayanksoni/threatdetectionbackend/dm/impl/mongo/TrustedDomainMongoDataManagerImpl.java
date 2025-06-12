@@ -1,4 +1,4 @@
-package tech.mayanksoni.threatdetectionbackend.dm.impl;
+package tech.mayanksoni.threatdetectionbackend.dm.impl.mongo;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
