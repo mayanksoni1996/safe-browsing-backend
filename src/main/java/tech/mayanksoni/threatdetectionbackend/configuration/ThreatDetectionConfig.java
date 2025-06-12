@@ -61,4 +61,9 @@ public class ThreatDetectionConfig {
      */
     @Builder.Default
     private int batchSize = 100;
+    /**
+     * The default state expires timestamp to be set
+     */
+    @Builder.Default
+    private String defaultStateLifetime = "24h";
 }
