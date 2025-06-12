@@ -22,10 +22,10 @@ public class StateManagementService {
      * @param accessOverrideControlAvailable Whether access override control is available for this state.
      * @return A Mono containing the created state model.
      */
-    public Mono<StateModel> createStateModel(String state, String domainName, String ipAddress, boolean accessOverrideControlAvailable) {
+    public Mono<StateModel> createStateModel(String state, String domainName, String ipAddress, boolean accessOverrideControlAvailable, boolean accessAllowed) {
         log.info("Creating state model with ID: {}, Domain: {}, IP: {}, Access Override Control Available: {}",
                 state, domainName, ipAddress, accessOverrideControlAvailable);
-        return stateDataManager.createState(state, domainName, ipAddress, accessOverrideControlAvailable);
+        return stateDataManager.createState(state, domainName, ipAddress, accessOverrideControlAvailable, accessAllowed);
     }
     public Mono<StateModel> getStateById(String state){
         log.info("Retrieving state model with ID: {}", state);

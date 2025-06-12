@@ -2,6 +2,7 @@ package tech.mayanksoni.threatdetectionbackend.processor;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.http.client.reactive.AbstractClientHttpConnectorProperties;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -24,6 +25,7 @@ public class DomainCheckProcessor {
     private final TyposquattingDetectionService typosquattingDetectionService;
     private final StateManagementService stateManagementService;
     private final ThreatDetectionConfig threatDetectionConfig;
+    private final AbstractClientHttpConnectorProperties abstractClientHttpConnectorProperties;
 
     /**
      * Checks a single domain for typosquatting.
@@ -32,7 +34,7 @@ public class DomainCheckProcessor {
      * @param stateId the state UUID associated with the domain check
      * @return A Mono containing the validation results
      */
-    public Mono<DomainValidationResponse> checkDomain(String domainName, String stateId) {
+    public Mono<DomainValidationResponse> checkDomain(String domainName, String stateId, String ipAddress) {
         log.info("Checking domain for typosquatting: {}", domainName);
         return stateManagementService.getStateById(stateId).map(state -> {
             if(state.accessAllowed()){
@@ -46,7 +48,8 @@ public class DomainCheckProcessor {
                     .build();
         }).switchIfEmpty(typosquattingDetectionService.checkDomainForTypoSquatting(domainName).flatMap(result -> {
             log.info("Domain {} checked for typosquatting, results: {}", domainName, result);
-            return stateManagementService.createStateModel(stateId, domainName, null, false)
+            boolean accessAllowed = !result.isTyposquatted() || !result.isPhoneticMatch();
+            return stateManagementService.createStateModel(stateId, domainName, ipAddress, false,accessAllowed)
                     .map(stateModel -> DomainValidationResponse.builder()
                             .stateModel(stateModel)
                             .typosquattingValidationResults(result)

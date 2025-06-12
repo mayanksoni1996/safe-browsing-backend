@@ -62,7 +62,7 @@ public class CheckDomainController {
             @Parameter(description = "State UUID for the domain check", required = true)
             @RequestParam String stateId
     ) {
-        return domainCheckProcessor.checkDomain(domainName,stateId);
+        return domainCheckProcessor.checkDomain(domainName,stateId, null);
     }
 
     /**

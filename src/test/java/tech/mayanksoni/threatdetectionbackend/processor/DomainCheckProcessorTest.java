@@ -43,6 +43,7 @@ class DomainCheckProcessorTest {
         String stateId = UUID.randomUUID().toString();
         boolean isTyposquatted = true;
         String closestMatchingDomain = "exampie.com";
+        String ipAddress = "127.0.0.1";
         int editDistance = 1;
 
         DomainTyposquattingValidationResults mockResults = new DomainTyposquattingValidationResults(
@@ -60,11 +61,11 @@ class DomainCheckProcessorTest {
         StateModel mockStateModel = new StateModel(
                 stateId, domainName, null, false, false, Instant.now().plusSeconds(86400)
         );
-        when(stateManagementService.createStateModel(any(), eq(domainName), any(), eq(false)))
+        when(stateManagementService.createStateModel(any(), eq(domainName), any(), eq(false),eq(false)))
                 .thenReturn(Mono.just(mockStateModel));
 
         // When
-        Mono<DomainValidationResponse> result = domainCheckProcessor.checkDomain(domainName, stateId);
+        Mono<DomainValidationResponse> result = domainCheckProcessor.checkDomain(domainName, stateId, ipAddress);
 
         // Then
         StepVerifier.create(result)
@@ -98,7 +99,7 @@ class DomainCheckProcessorTest {
                 .thenReturn(Mono.empty());
 
         // When
-        Mono<DomainValidationResponse> result = domainCheckProcessor.checkDomain(domainName, stateId);
+        Mono<DomainValidationResponse> result = domainCheckProcessor.checkDomain(domainName, stateId, null);
 
         // Then
         StepVerifier.create(result)

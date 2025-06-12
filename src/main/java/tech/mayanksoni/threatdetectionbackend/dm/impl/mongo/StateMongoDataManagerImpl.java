@@ -44,12 +44,12 @@ public class StateMongoDataManagerImpl implements StateDataManager {
         return TimeProcessor.processTime(timeString);
     }
     @Override
-    public Mono<StateModel> createState(String state, String domainName, String ipAddress, boolean accessOverrideControlAvailable) {
+    public Mono<StateModel> createState(String state, String domainName, String ipAddress, boolean accessOverrideControlAvailable, boolean accessAllowed) {
         StateDocument stateDocument = StateDocument.builder()
                 .id(state)
                 .stateExpiresAt(TimeProcessor.processTime(threatDetectionConfig.getDefaultStateLifetime()))
                 .creationTimestamp(Instant.now())
-                .accessAllowed(false)
+                .accessAllowed(accessAllowed)
                 .stateExpiresAt(processTime(threatDetectionConfig.getDefaultStateLifetime()))
                 .accessOverrideControlAvailable(accessOverrideControlAvailable)
                 .domainName(domainName)
@@ -66,10 +66,9 @@ public class StateMongoDataManagerImpl implements StateDataManager {
 
     @Override
     public Mono<StateModel> getStateById(String stateId) {
-        Query query = ACTIVE_STATES_QUERY.addCriteria(Criteria.where("id").is(stateId));
+        Query query = Query.query(Criteria.where("id").is(stateId));
         return mongoTemplate.findOne(query, StateDocument.class)
-                .map(STATE_MAPPER::toStateModel)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("State not found with id: " + stateId)));
+                .map(STATE_MAPPER::toStateModel);
     }
 
     @Override
