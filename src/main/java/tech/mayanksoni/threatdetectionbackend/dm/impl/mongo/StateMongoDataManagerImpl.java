@@ -6,6 +6,8 @@ import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -20,11 +22,21 @@ import java.time.Instant;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@EnableScheduling
 public class StateMongoDataManagerImpl implements StateDataManager {
     private final ReactiveMongoTemplate mongoTemplate;
     private final ThreatDetectionConfig threatDetectionConfig;
-    private static final Query ACTIVE_STATES_QUERY = Query.query(Criteria.where("stateExpiresAt").lt(Instant.now()));
+    private static final Query ACTIVE_STATES_QUERY = Query.query(Criteria.where("stateExpiresAt").gt(Instant.now()));
+    private static final Query INACTIVE_STATES_QUERY = Query.query(Criteria.where("stateExpiresAt").lt(Instant.now()));
     private final StateMapper STATE_MAPPER;
+
+    @Scheduled(cron = "0 */5 * * * *")
+    private void performCleanupTask() {
+        // This method is a placeholder for any cleanup logic that might be needed every 15 minutes.
+        // It can be implemented as needed.
+        log.info("Performing cleanup task for state");
+        this.deleteAllInactiveStates();
+    }
     @Override
     public Mono<StateModel> createState(String state, String domainName, String ipAddress, boolean accessOverrideControlAvailable) {
         StateDocument stateDocument = StateDocument.builder()
@@ -95,8 +107,8 @@ public class StateMongoDataManagerImpl implements StateDataManager {
     }
 
     @Override
-    public Mono<Void> deleteAllInactiveStates() {
-        return null;
+    public void deleteAllInactiveStates() {
+        this.mongoTemplate.remove(INACTIVE_STATES_QUERY, StateDocument.class).doOnSuccess(result -> log.info("Successfully deleted {} inactive states",result.getDeletedCount())).subscribe();
     }
 
     @Override

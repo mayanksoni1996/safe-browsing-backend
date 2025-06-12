@@ -13,6 +13,6 @@ public interface StateDataManager {
     Flux<StateModel> getAllActiveStates();
     void deleteStateById(String stateId);
     void deleteAllStates();
-    Mono<Void> deleteAllInactiveStates();
+    void deleteAllInactiveStates();
     void deleteAllActiveStates();
 }
