@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import tech.mayanksoni.threatdetectionbackend.models.DomainTyposquattingValidationResults;
+import tech.mayanksoni.threatdetectionbackend.models.DomainValidationRequest;
 import tech.mayanksoni.threatdetectionbackend.models.DomainValidationResponse;
 import tech.mayanksoni.threatdetectionbackend.processor.DomainCheckProcessor;
 
@@ -63,6 +64,36 @@ public class CheckDomainController {
             @RequestParam String stateId
     ) {
         return domainCheckProcessor.checkDomain(domainName,stateId, null);
+    }
+    @Operation(
+            summary = "Validate domain for typosquatting with POST",
+            description = "Checks if a domain is potentially a typosquatting attempt against trusted domains using POST method"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Domain validation completed successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = DomainValidationResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid domain name format",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content
+            )
+    })
+    @PostMapping
+    public Mono<DomainValidationResponse> validateDomainForTyposquattingPost(
+            @RequestBody DomainValidationRequest validationRequest
+            ){
+        return domainCheckProcessor.checkDomain(validationRequest.domainName(), validationRequest.stateId(), validationRequest.ipAddress());
     }
 
     /**
