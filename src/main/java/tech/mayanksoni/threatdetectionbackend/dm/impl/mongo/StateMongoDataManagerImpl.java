@@ -1,5 +1,6 @@
 package tech.mayanksoni.threatdetectionbackend.dm.impl.mongo;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
@@ -31,6 +32,7 @@ public class StateMongoDataManagerImpl implements StateDataManager {
     private final StateMapper STATE_MAPPER;
 
     @Scheduled(cron = "0 */5 * * * *")
+    @PostConstruct
     private void performCleanupTask() {
         // This method is a placeholder for any cleanup logic that might be needed every 15 minutes.
         // It can be implemented as needed.
