@@ -24,6 +24,9 @@ public class TrustedDomainDocument {
     @Indexed
     private String tld;
     private char firstLetter;
+    private String soundexCode;
+    private String metaphoneCode;
+    private String doubleMetaphoneCode;
     private int length;
     @CreationTimestamp
     private Instant createdAt;
