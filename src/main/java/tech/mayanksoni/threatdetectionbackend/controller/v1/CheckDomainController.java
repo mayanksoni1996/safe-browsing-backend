@@ -1,5 +1,6 @@
 package tech.mayanksoni.threatdetectionbackend.controller.v1;
 
+import brave.Tracer;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -9,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -23,6 +25,7 @@ import java.util.List;
  * Controller for domain validation endpoints.
  */
 @RestController
+@Slf4j
 @RequestMapping("/api/v1/check-domain")
 @RequiredArgsConstructor
 @Tag(name = "Domain Validation", description = "API for validating domains against typosquatting and other threats")

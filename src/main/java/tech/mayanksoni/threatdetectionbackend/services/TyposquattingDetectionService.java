@@ -66,6 +66,7 @@ public class TyposquattingDetectionService {
                                         try {
                                             // Normalize domains before adding to database
                                             Flux<TrancoDomainEntry> normalizedDomainsFlux = ThreatIntelFileSystemUtils.readCsvFileFromFileSystemAsFlux(Paths.get(trancoFilePath))
+                                                    .filter(record -> DomainUtils.isValidDomain(record[1]))
                                                     .map(record -> new TrancoDomainEntry(DomainUtils.normalizeDomain(record[1]),Long.parseLong(record[0]))); // Assuming the domain is in the first column
                                             return this.trustedDomainDataManager.addTrustedDomain(normalizedDomainsFlux)
                                                     .doOnSuccess(v2 -> log.info("All trusted domains have been successfully loaded"))
@@ -116,7 +117,7 @@ public class TyposquattingDetectionService {
                 })
                 .switchIfEmpty(
                     // If no exact match, check for typosquatting using edit distance and phonetic matching
-                    checkForTyposquattingAndPhoneticMatches(normalizedDomain, trustedDomainDataManager.getTrustedDomainsByTLD(DomainUtils.extractTLDFromDomain(normalizedDomain)))
+                    checkForTyposquattingAndPhoneticMatches(normalizedDomain, trustedDomainDataManager.getTrustedDomainsByTLD(DomainUtils.extractTLDFromDomain(normalizedDomain), normalizedDomain))
                 );
     }
 

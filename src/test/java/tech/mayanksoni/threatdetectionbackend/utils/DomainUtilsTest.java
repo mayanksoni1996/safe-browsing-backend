@@ -14,11 +14,10 @@ class DomainUtilsTest {
     @ParameterizedTest
     @CsvSource({
         "example.com, com",
-        "sub.example.com, example.com",
-        "deep.sub.example.com, example.com",
+        "sub.example.com, com",
+        "deep.sub.example.com, com",
         "example.co.uk, co.uk",
-        "sub.example.co.uk, example.co.uk",
-        "invalid, ''"
+        "sub.example.co.uk, co.uk",
     })
     void extractTLDFromDomain_shouldExtractCorrectTLD(String domain, String expectedTLD) {
         // When

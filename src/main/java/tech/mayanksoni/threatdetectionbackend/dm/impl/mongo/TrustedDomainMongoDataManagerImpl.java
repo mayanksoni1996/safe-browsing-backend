@@ -44,6 +44,8 @@ public class TrustedDomainMongoDataManagerImpl implements TrustedDomainDataManag
     private TrustedDomainDocument createTrustedDomainDocument(TrancoDomainEntry domainEn) {
         return TrustedDomainDocument.builder()
                 .domainName(domainEn.domainName())
+                .length(DomainUtils.getDomainLength(domainEn.domainName()))
+                .firstLetter(DomainUtils.getDomainFirstChar(domainEn.domainName()))
                 .domainRank(domainEn.rank())
                 .tld(DomainUtils.extractTLDFromDomain(domainEn.domainName()))
                 .build();
@@ -91,8 +93,9 @@ public class TrustedDomainMongoDataManagerImpl implements TrustedDomainDataManag
                 ;
     }
     @Override
-    public Flux<TrustedDomain> getTrustedDomainsByTLD(String tld) {
-        Query query = Query.query(Criteria.where("tld").is(tld));
+    public Flux<TrustedDomain> getTrustedDomainsByTLD(String tld, String domain) {
+        int domainLength = DomainUtils.getDomainLength(domain);
+        Query query = Query.query(Criteria.where("tld").is(tld).and("firstLetter").is(DomainUtils.getDomainFirstChar(domain)).and("length").gte(domainLength - 2).lte(domainLength + 2)).with(Sort.by(Sort.Direction.ASC, "domainRank"));
         return mongoTemplate.find(query, TrustedDomainDocument.class)
                 .map(TRUSTED_DOMAIN_MAPPER::toModel)
                 .doOnComplete(() -> log.info("Retrieved trusted domains for TLD: {}", tld));
