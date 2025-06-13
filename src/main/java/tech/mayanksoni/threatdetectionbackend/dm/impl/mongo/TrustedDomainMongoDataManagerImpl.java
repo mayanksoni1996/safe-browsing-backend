@@ -16,8 +16,10 @@ import tech.mayanksoni.threatdetectionbackend.mappers.TrustedDomainMapper;
 import tech.mayanksoni.threatdetectionbackend.models.TrancoDomainEntry;
 import tech.mayanksoni.threatdetectionbackend.models.TrustedDomain;
 import tech.mayanksoni.threatdetectionbackend.utils.DomainUtils;
+import tech.mayanksoni.threatdetectionbackend.utils.PhoneticMatchingUtil;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -45,6 +47,9 @@ public class TrustedDomainMongoDataManagerImpl implements TrustedDomainDataManag
         return TrustedDomainDocument.builder()
                 .domainName(domainEn.domainName())
                 .length(DomainUtils.getDomainLength(domainEn.domainName()))
+                .soundexCode(PhoneticMatchingUtil.getSoundexCode(domainEn.domainName()))
+                .metaphoneCode(PhoneticMatchingUtil.getMetaphoneCode(domainEn.domainName()))
+                .doubleMetaphoneCode(PhoneticMatchingUtil.getDoubleMetaphoneCode(domainEn.domainName()))
                 .firstLetter(DomainUtils.getDomainFirstChar(domainEn.domainName()))
                 .domainRank(domainEn.rank())
                 .tld(DomainUtils.extractTLDFromDomain(domainEn.domainName()))
@@ -70,6 +75,7 @@ public class TrustedDomainMongoDataManagerImpl implements TrustedDomainDataManag
                 .then();
     }
 
+    @Deprecated(forRemoval = true)
     private List<List<String>> createBatches(List<String> domains, int batchSize) {
         return IntStream.range(0, (domains.size() + batchSize - 1) / batchSize)
                 .mapToObj(i -> domains.subList(
@@ -95,10 +101,24 @@ public class TrustedDomainMongoDataManagerImpl implements TrustedDomainDataManag
     @Override
     public Flux<TrustedDomain> getTrustedDomainsByTLD(String tld, String domain) {
         int domainLength = DomainUtils.getDomainLength(domain);
-        Query query = Query.query(Criteria.where("tld").is(tld).and("firstLetter").is(DomainUtils.getDomainFirstChar(domain)).and("length").gte(domainLength - 2).lte(domainLength + 2)).with(Sort.by(Sort.Direction.ASC, "domainRank"));
+        AtomicLong counter = new AtomicLong(0);
+        String soundexCode = PhoneticMatchingUtil.getSoundexCode(domain);
+        String metaphoneCode = PhoneticMatchingUtil.getMetaphoneCode(domain);
+        String doubleMetaphoneCode = PhoneticMatchingUtil.getDoubleMetaphoneCode(domain);
+        String soundexPattern = soundexCode.substring(0, soundexCode.length() - 1) + "[0-9]";
+        log.debug("SoundexCode: {}, MetaphoneCode: {}, DoubleMetaphoneCode: {}, SoundexPattern: {}",soundexCode, metaphoneCode, doubleMetaphoneCode, soundexPattern);
+        Criteria phoneticCriteria = new Criteria()
+                .orOperator(
+                        Criteria.where("soundexCode").regex(soundexPattern),
+                        Criteria.where("metaphoneCode").is(metaphoneCode),
+                        Criteria.where("doubleMetaphoneCode").is(doubleMetaphoneCode)
+                );
+        Criteria tldCriteria = Criteria.where("tld").is(tld);
+        Query query = Query.query(new Criteria().andOperator(tldCriteria, phoneticCriteria));
         return mongoTemplate.find(query, TrustedDomainDocument.class)
                 .map(TRUSTED_DOMAIN_MAPPER::toModel)
-                .doOnComplete(() -> log.info("Retrieved trusted domains for TLD: {}", tld));
+                .doOnNext(item -> counter.incrementAndGet())
+                .doOnComplete(() -> log.info("Retrieved trusted domains for TLD: {}, count: {}", tld, counter.get()));
     }
 
     @Override
