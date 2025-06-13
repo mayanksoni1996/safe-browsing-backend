@@ -23,6 +23,8 @@ public class TrustedDomainDocument {
     private long domainRank;
     @Indexed
     private String tld;
+    private char firstLetter;
+    private int length;
     @CreationTimestamp
     private Instant createdAt;
 }

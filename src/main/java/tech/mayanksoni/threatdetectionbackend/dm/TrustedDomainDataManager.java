@@ -14,7 +14,7 @@ public interface TrustedDomainDataManager {
     Mono<Void> addTrustedDomain(Flux<TrancoDomainEntry> domains);
     Flux<TrustedDomain> getTrustedDomains();
     Flux<TrustedDomain> getTrustedDomainByTldAndDomain(String tld, String domain);
-    Flux<TrustedDomain> getTrustedDomainsByTLD(String tld);
+    Flux<TrustedDomain> getTrustedDomainsByTLD(String tld, String domain);
     Mono<TrustedDomain> getTrustedDomainByDomainName(String domainName);
     Mono<Boolean> isTrustedDomain(String domainName);
 

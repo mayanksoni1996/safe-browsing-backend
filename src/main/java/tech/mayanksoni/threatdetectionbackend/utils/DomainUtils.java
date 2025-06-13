@@ -1,8 +1,13 @@
 package tech.mayanksoni.threatdetectionbackend.utils;
 
+import com.google.common.net.InternetDomainName;
+import lombok.extern.slf4j.Slf4j;
+
 import java.net.IDN;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
+@Slf4j
 public class DomainUtils {
     private static final Pattern WWW_PATTERN = Pattern.compile("^www\\.", Pattern.CASE_INSENSITIVE);
 
@@ -15,14 +20,24 @@ public class DomainUtils {
      * @return The TLD of the domain
      */
     public static String extractTLDFromDomain(String domain) {
-        String[] parts = domain.split("\\.");
-        if (parts.length < 2) {
-            return ""; // Return empty string if no TLD is found
+        if(domain == null || domain.isEmpty()){
+            return "";
         }
-        if(parts.length > 2){
-            return parts[parts.length - 2] + "." + parts[parts.length - 1]; // Return the last two parts as TLD
-        } else {
-            return parts[parts.length - 1]; // Return the last part as TLD
+        InternetDomainName domainName = InternetDomainName.from(normalizeDomain(domain));
+        Optional<InternetDomainName> publicSuffix = Optional.ofNullable(domainName.publicSuffix());
+        return publicSuffix.map(InternetDomainName::toString).orElseThrow(() -> new IllegalArgumentException("Invalid domain: " + domain));
+    }
+    public static boolean isValidDomain(String domain){
+        String normalized = normalizeDomain(domain);
+        if (normalized == null || normalized.isEmpty()) {
+            return false;
+        }
+        try {
+            InternetDomainName domainName = InternetDomainName.from(normalized);
+            return true;
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid domain format: {}", normalized);
+            return false;
         }
     }
 
@@ -41,10 +56,10 @@ public class DomainUtils {
         }
 
         // Convert to lowercase
-        String normalized = domain.toLowerCase();
+        String normalized = domain.toLowerCase().trim();
 
         // Remove "www." prefix
-        normalized = WWW_PATTERN.matcher(normalized).replaceFirst("");
+//        normalized = WWW_PATTERN.matcher(normalized).replaceFirst("");
 
         // Convert IDN to ASCII
         try {
@@ -74,5 +89,26 @@ public class DomainUtils {
         // For domains like example.com, return "example"
         // For domains like example.co.uk, also return "example"
         return parts[parts.length - 2];
+    }
+    public static int getDomainLength(String domain){
+        try{
+            InternetDomainName domainName = InternetDomainName.from(normalizeDomain(domain));
+            return domainName.isTopPrivateDomain() ? domainName.topPrivateDomain().toString().length() : 0;
+        }catch (IllegalStateException e){
+            log.error("Error getting domain length for domain: {}", normalizeDomain(domain), e);
+            return 0;
+        }
+    }
+    public static char getDomainFirstChar(String domain) {
+        try{
+            if (domain == null || domain.isEmpty()) {
+                return '\0'; // Return null character for empty or null domains
+            }
+            InternetDomainName domainName = InternetDomainName.from(normalizeDomain(domain));
+            return domainName.isTopPrivateDomain() ? domainName.topPrivateDomain().toString().charAt(0) : '\0';
+        }catch (IllegalStateException e){
+            log.error("Error getting first character for domain: {}", normalizeDomain(domain), e);
+            return '\0'; // Return null character if there's an error
+        }
     }
 }
