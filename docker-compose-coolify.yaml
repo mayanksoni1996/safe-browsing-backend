@@ -9,7 +9,7 @@ services:
     volumes:
       - LOG_VOL:/var/log
     environment:
-      MONGODB_URI: "mongodb://${SERVICE_USER_MONGODB}:${SERVICE_PASSWORD_64_MONGODB}@mongo:27017/${THREAT_INTEL_DB_NAME}?authSource=admin"
+      - MONGODB_URI
     healthcheck:
       test: ["CMD","curl","-f","http://localhost:8080/actuator/health"]
       interval: 30s
