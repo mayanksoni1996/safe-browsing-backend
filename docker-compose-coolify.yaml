@@ -20,8 +20,8 @@ services:
     image: mongo:7
     restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${ SERVICE_USER_MONGODB }
-      MONGO_INITDB_ROOT_PASSWORD: ${ SERVICE_PASSWORD_64_MONGODB }
+      MONGO_INITDB_ROOT_USERNAME: ${SERVICE_USER_MONGODB}
+      MONGO_INITDB_ROOT_PASSWORD: ${SERVICE_PASSWORD_64_MONGODB}
       MONGO_INITDB_DATABASE: "threat-intel-db"
   promtail:
     image: grafana/promtail:2.9.2
