@@ -28,10 +28,9 @@ RUN echo "Fetching the latest Tranco list..." && \
 FROM eclipse-temurin:21.0.6_7-jre-ubi9-minimal AS runtime
 WORKDIR /app
 VOLUME /data/trusted
-ENV SPRING_PROFILES_ACTIVE=prod
-ENV PUBLIC_FQDN=${COOLIFY_FQDN:-localhost}
-ENV ARTIFACTORY_PATH=build/libs/*.jar
+ENV SPRING_PROFILES_ACTIVE=prod,container
 ENV TRANCO_FILEPATH=/app/tranco_latest.csv
+VOLUME /var/log
 COPY --from=builder /app/build/libs/*.jar /app.jar
 COPY --from=downloader tranco_latest.csv /app/tranco_latest.csv
 CMD ["java", "-jar", "/app.jar"]

@@ -1,5 +1,6 @@
 package tech.mayanksoni.threatdetectionbackend.utils;
 
+import com.google.common.net.InternetDomainName;
 import org.apache.commons.codec.language.Soundex;
 import org.apache.commons.codec.language.DoubleMetaphone;
 import org.apache.commons.codec.language.Metaphone;
@@ -42,12 +43,12 @@ public class PhoneticMatchingUtil {
      */
     public static String getMetaphoneCode(String domain) {
         // Extract the second-level domain for better matching
-        String sld = DomainUtils.extractSLD(domain);
+        InternetDomainName domainName = InternetDomainName.from(domain);
         try {
-            return METAPHONE.encode(sld);
+            return METAPHONE.encode(domainName.toString());
         } catch (Exception e) {
             // If encoding fails, return the original SLD
-            return sld;
+            return domain;
         }
     }
     
@@ -60,12 +61,12 @@ public class PhoneticMatchingUtil {
      */
     public static String getDoubleMetaphoneCode(String domain) {
         // Extract the second-level domain for better matching
-        String sld = DomainUtils.extractSLD(domain);
+        InternetDomainName domainName = InternetDomainName.from(domain);
         try {
-            return DOUBLE_METAPHONE.encode(sld);
+            return DOUBLE_METAPHONE.encode(domainName.toString());
         } catch (Exception e) {
             // If encoding fails, return the original SLD
-            return sld;
+            return domain;
         }
     }
     
