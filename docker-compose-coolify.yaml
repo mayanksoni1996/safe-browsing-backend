@@ -26,7 +26,7 @@ services:
   promtail:
     image: grafana/promtail:2.9.2
     volumes:
-      - promtail-config.yaml:/etc/promtail/promtail-config.yaml
+      - ./promtail-config.yaml:/etc/promtail/promtail-config.yaml
       - LOG_VOL:/var/log
     command: -config.file=/etc/promtail/promtail-config.yaml
     depends_on:
