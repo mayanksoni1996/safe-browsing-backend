@@ -6,8 +6,16 @@ services:
     ports:
       - "8080"
     restart: unless-stopped
+    volumes:
+      - LOG_VOL:/var/log
     environment:
       - MONGODB_URI
+    healthcheck:
+      test: ["CMD","curl","-f","http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
   mongo:
     image: mongo:8
     restart: unless-stopped
@@ -15,3 +23,11 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${ SERVICE_USER_MONGODB }
       MONGO_INITDB_ROOT_PASSWORD: ${ SERVICE_PASSWORD_64_MONGODB }
       MONGO_INITDB_DATABASE: ${ THREAT_INTEL_DB_NAME }
+  promtail:
+    image: grafana/promtail:2.9.2
+    volumes:
+      - promtail-config.yaml:/etc/promtail/promtail-config.yaml
+      - LOG_VOL:/var/log
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    depends_on:
+      - threat-intel-backend
