@@ -7,7 +7,7 @@ services:
       - "8080"
     restart: unless-stopped
     environment:
-      - MONGODB_URI=mongodb://${SERVICE_USER_MONGODB}:${SERVICE_PASSWORD_64_MONGODB}@mongo:27017/threat-intel-db?authSource=admin
+      - MONGODB_URI
   mongo:
     image: mongo:8
     restart: unless-stopped
