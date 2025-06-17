@@ -1,7 +1,7 @@
 services:
   threat-intel-backend:
     build:
-      context: .
+      context: .github
       dockerfile: Dockerfile
     ports:
       - "8080"
