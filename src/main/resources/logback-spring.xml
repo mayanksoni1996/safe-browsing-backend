@@ -1,0 +1,41 @@
+<configuration scan="true">
+
+    <!-- Dev/IDE logging -->
+    <springProfile name="default,dev,local">
+        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="STDOUT" />
+        </root>
+    </springProfile>
+
+    <!-- Container/Docker JSON logging -->
+    <springProfile name="container">
+
+        <!-- Console JSON logs (for stdout) -->
+        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <customFields>{"app":"threat-detection-backend-app","env":"container"}</customFields>
+            </encoder>
+        </appender>
+
+        <!-- File JSON logs -->
+        <appender name="FILE_JSON" class="ch.qos.logback.core.FileAppender">
+            <file>/var/log/spring-boot-app.log</file>
+            <append>true</append>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <customFields>{"app":"spring-boot-app","env":"container"}</customFields>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE" />
+            <appender-ref ref="FILE_JSON" />
+        </root>
+    </springProfile>
+
+</configuration>
