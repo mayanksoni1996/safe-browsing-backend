@@ -6,8 +6,6 @@ services:
     ports:
       - "8080"
     restart: unless-stopped
-    volumes:
-      - LOG_VOL:/var/log
     environment:
       - MONGODB_URI
     healthcheck:
@@ -23,11 +21,3 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${SERVICE_USER_MONGODB}
       MONGO_INITDB_ROOT_PASSWORD: ${SERVICE_PASSWORD_64_MONGODB}
       MONGO_INITDB_DATABASE: "threat-intel-db"
-  promtail:
-    image: grafana/promtail:2.9.2
-    volumes:
-      - ./promtail-config.yaml:/etc/promtail/promtail-config.yaml
-      - LOG_VOL:/var/log
-    command: -config.file=/etc/promtail/promtail-config.yaml
-    depends_on:
-      - threat-intel-backend
