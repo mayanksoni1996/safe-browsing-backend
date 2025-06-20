@@ -43,7 +43,8 @@ public class TrustedDomainMongoDataManagerImpl implements TrustedDomainDataManag
        return mongoTemplate.dropCollection(TrustedDomainDocument.class).doOnSuccess(success -> log.info("Truncated trusted domains"));
     }
 
-    private TrustedDomainDocument createTrustedDomainDocument(TrancoDomainEntry domainEn) {
+    // Package-private for testing
+    TrustedDomainDocument createTrustedDomainDocument(TrancoDomainEntry domainEn) {
         return TrustedDomainDocument.builder()
                 .domainName(domainEn.domainName())
                 .length(DomainUtils.getDomainLength(domainEn.domainName()))
@@ -67,11 +68,31 @@ public class TrustedDomainMongoDataManagerImpl implements TrustedDomainDataManag
 
     @Override
     public Mono<Void> addTrustedDomain(Flux<TrancoDomainEntry> domains) {
-        return domains.map(this::createTrustedDomainDocument)
+        log.info("Starting addTrustedDomain with batch size: {}", threatDetectionConfig.getBatchSize());
+
+        return domains
+                .doOnSubscribe(s -> log.info("Subscribed to domains flux"))
+                .flatMap(domain -> {
+                    try {
+                        return Mono.just(this.createTrustedDomainDocument(domain));
+                    } catch (IllegalArgumentException e) {
+                        log.error("Skipping invalid domain: {}, error: {}", domain.domainName(), e.getMessage());
+                        return Mono.empty(); // Skip this domain and continue with the next one
+                    }
+                })
+                .doOnNext(doc -> log.debug("Created document for domain: {}", doc.getDomainName()))
                 .buffer(threatDetectionConfig.getBatchSize())
-                .flatMap(mongoTemplate::insertAll)
-                .doOnComplete(() -> log.info("Successfully added trusted domains"))
-                .doOnError(e -> log.error("Error adding trusted domains: {}", e.getMessage()))
+                .doOnNext(batch -> log.info("Created batch of {} documents", batch.size()))
+                .flatMap(batch -> {
+                    log.info("Inserting batch of {} trusted domains", batch.size());
+                    return mongoTemplate.insertAll(batch)
+                            .doOnComplete(() -> log.info("Completed inserting batch of {} documents", batch.size()))
+                            .doOnError(e -> log.error("Error inserting batch: {}", e.getMessage()));
+                })
+                .doOnComplete(() -> log.info("Successfully completed processing all domains"))
+                .doOnError(e -> log.error("Error in addTrustedDomain: {}", e.getMessage()))
+                .count()  // Count the number of documents inserted
+                .doOnSuccess(count -> log.info("Total documents inserted: {}", count))
                 .then();
     }
 

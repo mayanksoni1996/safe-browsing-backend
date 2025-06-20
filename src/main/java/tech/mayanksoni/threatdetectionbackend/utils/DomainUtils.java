@@ -4,8 +4,9 @@ import com.google.common.net.InternetDomainName;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.IDN;
-import java.util.Optional;
 import java.util.regex.Pattern;
+
+import static org.bson.assertions.Assertions.assertNotNull;
 
 @Slf4j
 public class DomainUtils {
@@ -20,24 +21,15 @@ public class DomainUtils {
      * @return The TLD of the domain
      */
     public static String extractTLDFromDomain(String domain) {
-        if(domain == null || domain.isEmpty()){
-            return "";
-        }
-        InternetDomainName domainName = InternetDomainName.from(normalizeDomain(domain));
-        Optional<InternetDomainName> publicSuffix = Optional.ofNullable(domainName.publicSuffix());
-        return publicSuffix.map(InternetDomainName::toString).orElseThrow(() -> new IllegalArgumentException("Invalid domain: " + domain));
-    }
-    public static boolean isValidDomain(String domain){
+        assertNotNull(domain);
         String normalized = normalizeDomain(domain);
-        if (normalized == null || normalized.isEmpty()) {
-            return false;
-        }
-        try {
-            InternetDomainName domainName = InternetDomainName.from(normalized);
-            return true;
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid domain format: {}", normalized);
-            return false;
+        InternetDomainName domainName = InternetDomainName.from(normalized);
+        if (domainName.isTopPrivateDomain()) {
+            return domainName.topPrivateDomain().toString();
+        } else if (domainName.parts().size() > 1) {
+            return domainName.parts().get(domainName.parts().size() - 2) + "." + domainName.parts().get(domainName.parts().size() - 1);
+        } else {
+            return domainName.toString();
         }
     }
 
@@ -91,24 +83,10 @@ public class DomainUtils {
         return parts[parts.length - 2];
     }
     public static int getDomainLength(String domain){
-        try{
-            InternetDomainName domainName = InternetDomainName.from(normalizeDomain(domain));
-            return domainName.isTopPrivateDomain() ? domainName.topPrivateDomain().toString().length() : 0;
-        }catch (IllegalStateException e){
-            log.error("Error getting domain length for domain: {}", normalizeDomain(domain), e);
-            return 0;
-        }
+        String normalized = normalizeDomain(domain);
+        return normalized.length();
     }
     public static char getDomainFirstChar(String domain) {
-        try{
-            if (domain == null || domain.isEmpty()) {
-                return '\0'; // Return null character for empty or null domains
-            }
-            InternetDomainName domainName = InternetDomainName.from(normalizeDomain(domain));
-            return domainName.isTopPrivateDomain() ? domainName.topPrivateDomain().toString().charAt(0) : '\0';
-        }catch (IllegalStateException e){
-            log.error("Error getting first character for domain: {}", normalizeDomain(domain), e);
-            return '\0'; // Return null character if there's an error
-        }
+        return normalizeDomain(domain).charAt(0);
     }
 }

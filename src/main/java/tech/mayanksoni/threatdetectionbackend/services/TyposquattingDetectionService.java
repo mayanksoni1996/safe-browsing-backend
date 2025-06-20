@@ -29,6 +29,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class TyposquattingDetectionService {
     private final TrustedDomainDataManager trustedDomainDataManager;
     private final ThreatDetectionConfig threatDetectionConfig;
+    private final TrancoListProviderService trancoListProviderService;
     private int EDIT_DISTANCE_THRESHOLD;
     private ThreadPoolExecutor executor;
 
@@ -43,45 +44,39 @@ public class TyposquattingDetectionService {
             log.info("Parallel processing enabled with {} threads", threatDetectionConfig.getMaxThreads());
         }
 
-        String trancoFilePath = System.getenv("TRANCO_FILEPATH");
-        if (trancoFilePath == null || trancoFilePath.isEmpty()) {
-            log.error("TRANCO_FILEPATH environment variable is not set or is empty");
-            return;
-        }
-
+        // Use a single reactive chain without nested subscriptions
         trustedDomainDataManager.countTrustedDomains()
-                .subscribe(dbCount -> {
-                    try {
-                        // First check if we need to load domains by checking if the database is empty
-                        if (dbCount > 0) {
-                            log.info("Trusted domains already exist. Skipping initialization. DB count: {}", dbCount);
-                        } else {
-                            log.info("Trusted domains do not exist. Initializing database. DB count: {}", dbCount);
-                            this.trustedDomainDataManager.truncateTrustedDomains()
-                                .doOnSuccess(v -> log.info("Trusted domains database has been successfully truncated"))
-                                .doOnError(e -> log.error("Error truncating trusted domains database: {}", e.getMessage()))
-                                    .then(Mono.defer(() -> {
-                                        log.info("Loading trusted domains from file: {}", trancoFilePath);
-
-                                        try {
-                                            // Normalize domains before adding to database
-                                            Flux<TrancoDomainEntry> normalizedDomainsFlux = ThreatIntelFileSystemUtils.readCsvFileFromFileSystemAsFlux(Paths.get(trancoFilePath))
-                                                    .filter(record -> DomainUtils.isValidDomain(record[1]))
-                                                    .map(record -> new TrancoDomainEntry(DomainUtils.normalizeDomain(record[1]),Long.parseLong(record[0]))); // Assuming the domain is in the first column
-                                            return this.trustedDomainDataManager.addTrustedDomain(normalizedDomainsFlux)
-                                                    .doOnSuccess(v2 -> log.info("All trusted domains have been successfully loaded"))
-                                                    .doOnError(e -> log.error("Error loading trusted domains: {}", e.getMessage()));
-                                        } catch (Exception e) {
-                                            log.error("Error reading trusted domains from file: {}", e.getMessage());
-                                            return Mono.error(e);
-                                        }
-                                    }))
-                                .subscribe();
-                        }
-                    } catch (Exception e) {
-                        log.error("Error during initialization: {}", e.getMessage(), e);
+                .flatMap(dbCount -> {
+                    if (dbCount > 0) {
+                        log.info("Trusted domains already exist. Skipping initialization. DB count: {}", dbCount);
+                        return Mono.empty();
+                    } else {
+                        log.info("Trusted domains do not exist. Initializing database. DB count: {}", dbCount);
+                        return this.trustedDomainDataManager.truncateTrustedDomains()
+                            .doOnSuccess(v -> log.info("Trusted domains database has been successfully truncated"))
+                            .doOnError(e -> log.error("Error truncating trusted domains database: {}", e.getMessage()))
+                            .then(Mono.defer(() -> {
+                                log.info("Loading trusted domains from Tranco list service");
+                                try {
+                                    // Normalize domains before adding to database
+                                    Flux<TrancoDomainEntry> normalizedDomainsFlux = trancoListProviderService.getTrancoDomainsAsFlux();
+                                    log.info("Got normalized domains flux, adding to database");
+                                    return this.trustedDomainDataManager.addTrustedDomain(normalizedDomainsFlux)
+                                            .doOnSubscribe(s -> log.info("Starting to add trusted domains to database"))
+                                            .doOnSuccess(v2 -> log.info("All trusted domains have been successfully loaded"))
+                                            .doOnError(e -> log.error("Error loading trusted domains: {}", e.getMessage()));
+                                } catch (Exception e) {
+                                    log.error("Error reading trusted domains from file: {}", e.getMessage());
+                                    return Mono.error(e);
+                                }
+                            }));
                     }
-                });
+                })
+                .onErrorResume(e -> {
+                    log.error("Error during initialization: {}", e.getMessage(), e);
+                    return Mono.empty();
+                })
+                .subscribe();
     }
 
     /**
