@@ -1,0 +1,17 @@
+# Test configuration for Spring Boot
+spring:
+  application:
+    name: safe-browsing-test
+  threads:
+    virtual:
+      enabled: true
+  task:
+    scheduling:
+      enabled: false
+  data:
+    mongodb:
+      database: test
+
+# Safe Browsing configuration
+safe-browsing:
+  minio-bucket-name: safe-browsing-test
