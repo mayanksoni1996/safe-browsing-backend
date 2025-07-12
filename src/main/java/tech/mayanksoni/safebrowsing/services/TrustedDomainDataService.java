@@ -75,10 +75,7 @@ public class TrustedDomainDataService {
     private void downloadFromObjectStoreAndUploadToDB() {
         log.info("Downloading Tranco list from object store...");
         Optional<TrancoFileEntity> trancoFileEntityOptional = trancoListRepository.getLatestUnprocessedFile();
-        String listIdToPurge = trancoFileEntityOptional.map(TrancoFileEntity::listId).orElse(null);
-        if (listIdToPurge != null) {
-            this.trancoProvidedDomainRepository.purgeDomainsByListId(listIdToPurge);
-        }
+        trancoFileEntityOptional.map(TrancoFileEntity::listId).ifPresent(this.trancoProvidedDomainRepository::purgeDomainsByListId);
         trancoFileEntityOptional.ifPresentOrElse(trancoFileEntity -> {
             if (!trancoFileEntity.processed()) {
                 try (BufferedReader trancoFileBufferedReader = minioService.downloadFile(String.format(TRANCO_FILE_NAME_FORMAT, trancoFileEntity.listId()))) {
@@ -154,7 +151,7 @@ public class TrustedDomainDataService {
         Supplier<Resource> retryableSupplier = Retry.decorateSupplier(retry, () -> {
             log.info("Executing server call for listId {}", listId);
             try {
-                return downloadTrancoFullListFromServerUsingListId(listId);
+                return downloadTranco1MListUsingListId(listId);
             } catch (HttpClientErrorException e) {
                 if (e.getStatusCode().is4xxClientError()) {
                     log.error("Error downloading tranco file for listId {}", listId);
@@ -196,9 +193,15 @@ public class TrustedDomainDataService {
         }
     }
 
+    @Deprecated
     private Resource downloadTrancoFullListFromServerUsingListId(String listId) {
         log.debug("Downloading Tranco full list for listId {}", listId);
         return trancoHttpClient.downloadTrancoFullListById(listId);
+    }
+
+    private Resource downloadTranco1MListUsingListId(String listId) {
+        log.debug("Downloading Tranco Top 1M list for listId {}", listId);
+        return trancoHttpClient.downloadTrancoTop1MList(listId);
     }
 
     private TrancoDailyFileMetadata downloadTrancoListDailyMetadataFromServer(LocalDate date) {
