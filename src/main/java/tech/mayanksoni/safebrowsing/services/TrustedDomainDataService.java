@@ -70,6 +70,17 @@ public class TrustedDomainDataService {
     private void daily3AMTasks() {
         log.info("Executing daily 3AM tasks...");
         downloadFromObjectStoreAndUploadToDB();
+        deleteExpiredTrancoListFiles();
+    }
+
+    private void deleteExpiredTrancoListFiles() {
+        log.debug("Deleting expired Tranco list files...");
+        List<TrancoFileEntity> filesReadyToDelete = this.trancoListRepository.getAllTrancoListsReadyToDelete();
+        filesReadyToDelete.forEach(fileEntity -> {
+            this.trancoProvidedDomainRepository.purgeDomainsByListId(fileEntity.listId());
+            this.trancoListRepository.markedListAsPurged(fileEntity.listId());
+        });
+        log.debug("Deleted {} expired Tranco list files", filesReadyToDelete.size());
     }
 
     private void downloadFromObjectStoreAndUploadToDB() {

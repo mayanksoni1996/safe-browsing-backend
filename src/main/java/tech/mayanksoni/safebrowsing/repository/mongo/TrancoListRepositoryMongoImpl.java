@@ -42,6 +42,12 @@ public class TrancoListRepositoryMongoImpl implements TrancoListRepository {
         return fetchUnprocessedTrancoFiles().stream().findFirst().map(TRANCO_FILE_MAPPER::toTrancoFileEntity);
     }
 
+    @Override
+    public List<TrancoFileEntity> getAllTrancoListsReadyToDelete() {
+        Query processedAndReadyToDelete = Query.query(Criteria.where("processed").is(true).and("active").is(false));
+        return this.mongoTemplate.find(processedAndReadyToDelete, TrancoFile.class).stream().map(TRANCO_FILE_MAPPER::toTrancoFileEntity).toList();
+    }
+
 
     @Override
     public List<TrancoFileEntity> getProcessedFiles() {
@@ -66,6 +72,17 @@ public class TrancoListRepositoryMongoImpl implements TrancoListRepository {
             throw new ListEntryNotFound("The list could not be located in DB, listId: " + updatedActiveTrancoList + " or the list is not yet processed");
         });
 
+    }
+
+    @Override
+    public void markedListAsPurged(String listId) {
+        Query mongoSelectionQuery = Query.query(Criteria.where("listId").is(listId));
+        Update mongoUpdateSpec = Update.update("active", false).set("processed", true).set("purged", true);
+        UpdateResult mongoUpdateResult = this.mongoTemplate.updateMulti(mongoSelectionQuery, mongoUpdateSpec, TrancoFile.class);
+        log.debug("Marked list as purged, Update Count: {}", mongoUpdateResult.getModifiedCount());
+        if (mongoUpdateResult.getModifiedCount() == 0) {
+            throw new ListEntryNotFound("The list could not be located in DB, listId: " + listId + " or the list is not yet processed");
+        }
     }
 
     private void deactivateAllTrancoLists() {

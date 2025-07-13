@@ -11,11 +11,14 @@ public interface TrancoListRepository {
 
     Optional<TrancoFileEntity> getLatestUnprocessedFile();
 
+    List<TrancoFileEntity> getAllTrancoListsReadyToDelete();
     List<TrancoFileEntity> getProcessedFiles();
 
     List<TrancoFileEntity> getLatestUnprocessedFiles();
 
     void updateActiveTrancoList(String updatedActiveTrancoList);
+
+    void markedListAsPurged(String listId);
 
     Optional<TrancoFileEntity> createTrancoFile(String fileName, String listId, Instant downloadedOn, long contentSize);
 
