@@ -61,7 +61,7 @@ jobs:
         env:
           ARTIFACTORY_PATH: ${{ steps.download-artifact.outputs.download-path }}
         with:
-          context: safe-browsing-backend
+          context: .
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.docker-metadata-action.outputs.tags }}
