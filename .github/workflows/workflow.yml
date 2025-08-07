@@ -58,8 +58,6 @@ jobs:
         uses: docker/setup-buildx-action@v3
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
-        env:
-          ARTIFACTORY_PATH: ${{ steps.download-artifact.outputs.download-path }}
         with:
           context: .
           push: true
